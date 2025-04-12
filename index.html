@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Enable responsive scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CHEL Team Generator</title>
+  <!-- Import a retro pixel font -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    /* GENERAL STYLING (NHL '94-inspired) */
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background: #0a0a0a;
+      color: #e6e6e6;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    h1, h2, h3 {
+      color: #ffcc00;
+      text-shadow: 2px 2px #000;
+    }
+    button {
+      font-family: 'Press Start 2P', cursive;
+      background: #1a1a1a;
+      color: #ffcc00;
+      border: 2px solid #ffcc00;
+      padding: 8px 16px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #ffcc00;
+      color: #1a1a1a;
+    }
+    input[type="text"] {
+      font-family: 'Press Start 2P', cursive;
+      padding: 10px;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 250px;
+      border: 2px solid #ffcc00;
+      background: #1a1a1a;
+      color: #ffcc00;
+      box-sizing: border-box;
+    }
+    input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    /* USERS TAB (editing default users) */
+    #usersContainer > div {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    #usersContainer label {
+      margin-right: 10px;
+      flex: 1;
+    }
+    #usersContainer input.nickname,
+    #usersContainer input.emoji {
+      max-width: 100px;
+      margin-right: 10px;
+    }
+    /* GENERATOR TAB – Default Users Selection */
+    #defaultUsersSelectionContainer > div {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    #defaultUsersSelectionContainer label {
+      margin-right: 10px;
+      flex: 1;
+    }
+    /* TAB NAVIGATION STYLING */
+    .tab-container {
+      display: flex;
+      flex-wrap: wrap;
+      border-bottom: 2px solid #ffcc00;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-bottom: none;
+      flex: 1;
+      text-align: center;
+    }
+    .tab.active {
+      background: #ffcc00;
+      color: #1a1a1a;
+      border-top: 2px solid #ffcc00;
+      border-left: 2px solid #ffcc00;
+      border-right: 2px solid #ffcc00;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .section {
+      margin-bottom: 25px;
+    }
+    .team {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 2px solid #ffcc00;
+    }
+    .team input[type="text"].team-name {
+      width: auto;
+      max-width: none;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+    #historyContent div {
+      padding: 5px 0;
+    }
+    /* ANIMATION OVERLAY STYLING */
+    #animationOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      display: none;
+      overflow: hidden;
+    }
+    .falling-ball {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background-color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1a1a1a;
+      font-size: 0.5rem;
+      opacity: 0;
+      animation: fallBounce 3s ease-out forwards;
+      text-align: center;
+      white-space: nowrap;
+    }
+    @keyframes fallBounce {
+      0% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      60% {
+        transform: translateY(80vh);
+        opacity: 1;
+      }
+      75% {
+        transform: translateY(70vh);
+        opacity: 1;
+      }
+      90% {
+        transform: translateY(90vh);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(100vh);
+        opacity: 0;
+      }
+    }
+    /* MOBILE / RESPONSIVE ADJUSTMENTS */
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      h2, h3 {
+        font-size: 1.2rem;
+      }
+      button {
+        padding: 6px 12px;
+        margin: 3px;
+        font-size: 0.8rem;
+      }
+      input[type="text"] {
+        font-size: 0.8rem;
+        max-width: 100%;
+      }
+      .tab {
+        padding: 8px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>CHEL Team Generator</h1>
+  
+  <!-- Animation Overlay -->
+  <div id="animationOverlay"></div>
+  
+  <!-- Tab Navigation -->
+  <div class="tab-container">
+    <div class="tab active" data-tab="generator">Generator</div>
+    <div class="tab" data-tab="history">History</div>
+    <div class="tab" data-tab="users">Users</div>
+  </div>
+  
+  <!-- Tab Content: Generator -->
+  <div id="generator" class="tab-content active">
+    <!-- Section: Record Name Input -->
+    <div class="section">
+      <h2>History Name</h2>
+      <label for="recordName">History Name:</label>
+      <input type="text" id="recordName" placeholder="Record Title (optional)" />
+    </div>
+    
+    <!-- Section: Select Default Users for Team Generation -->
+    <div class="section" id="defaultUsersSelectionSection">
+      <h2>Select Default Users</h2>
+      <div id="defaultUsersSelectionContainer">Loading default users...</div>
+    </div>
+    
+    <!-- Section: Add a New Person -->
+    <div class="section">
+      <h2>Add Someone Else</h2>
+      <label for="newName">Name:</label>
+      <input type="text" id="newName" placeholder="Enter full name" />
+      <br />
+      <button id="addPersonBtn">Add</button>
+    </div>
+    
+    <!-- Section: Generate Teams (Always 2 Teams) -->
+    <div class="section">
+      <button id="generateBtn">Generate Teams</button>
+    </div>
+    
+    <!-- Section: Display Generated Teams -->
+    <div id="results" class="section"></div>
+  </div>
+  
+  <!-- Tab Content: History -->
+  <div id="history" class="tab-content">
+    <h2>Shared History</h2>
+    <div id="historyContent">Loading history...</div>
+  </div>
+  
+  <!-- Tab Content: Users -->
+  <div id="users" class="tab-content">
+    <h2>Edit Default Users</h2>
+    <div id="usersContainer">Loading default users...</div>
+    <button id="saveDefaultUsersBtn">Save Default Users</button>
+  </div>
+  
+  <!-- Firebase Modules and App Logic -->
+  <script type="module">
+    // Import Firebase modules (including updateDoc and doc for updating)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, getDocs, query, orderBy, limit,
+      updateDoc, doc
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYr_pqFaq56P8qRMGYtbLPxhrh131ys18",
+      authDomain: "chelteamgenerator.firebaseapp.com",
+      projectId: "chelteamgenerator",
+      storageBucket: "chelteamgenerator.firebasestorage.app",
+      messagingSenderId: "985096487599",
+      appId: "1:985096487599:web:df8aa10a8eafb352964a5a",
+      measurementId: "G-RXLSG8G3P9"
+    };
+    
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Global variables:
+    // defaultUsers: array of objects { id, name, nickname, emoji }
+    let defaultUsers = [];
+    // customPeople: array of objects { name }
+    let customPeople = [];
+    
+    // Fetch default users from Firestore
+    async function fetchDefaultUsers() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "defaultUsers"));
+        defaultUsers = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          defaultUsers.push({ id: docSnap.id, name: data.name, nickname: data.nickname, emoji: data.emoji || "" });
+        });
+        renderDefaultUsers();           // For Users tab editing
+        renderDefaultUsersSelection();  // For Generator tab selection
+      } catch (error) {
+        console.error("Error fetching default users:", error);
+        document.getElementById("usersContainer").innerText = "Failed to load default users.";
+        document.getElementById("defaultUsersSelectionContainer").innerText = "Failed to load default users.";
+      }
+    }
+    
+    // Render default users in the Users tab for editing nicknames and emojis.
+    function renderDefaultUsers() {
+      const container = document.getElementById("usersContainer");
+      container.innerHTML = "";
+      defaultUsers.forEach((user, index) => {
+        const row = document.createElement("div");
+    
+        const nameLabel = document.createElement("label");
+        nameLabel.textContent = user.name;
+    
+        // Nickname input field
+        const nicknameInput = document.createElement("input");
+        nicknameInput.type = "text";
+        nicknameInput.classList.add("nickname");
+        nicknameInput.value = user.nickname;
+        nicknameInput.placeholder = "Edit nickname";
+    
+        // Emoji input field
+        const emojiInput = document.createElement("input");
+        emojiInput.type = "text";
+        emojiInput.classList.add("emoji");
+        emojiInput.value = user.emoji;
+        emojiInput.placeholder = "Edit emoji";
+    
+        row.appendChild(nameLabel);
+        row.appendChild(nicknameInput);
+        row.appendChild(emojiInput);
+    
+        container.appendChild(row);
+      });
+    }
+    
+    // Render default users in the Generator tab for selection.
+    // The label is formatted to display:
+    //  - If a nickname exists: nickname (name) emoji
+    //  - Otherwise: name emoji
+    function renderDefaultUsersSelection() {
+      const container = document.getElementById("defaultUsersSelectionContainer");
+      container.innerHTML = "";
+      defaultUsers.forEach((user, index) => {
+        const row = document.createElement("div");
+    
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `genDefaultUser-${index}`;
+        checkbox.checked = true;
+    
+        const label = document.createElement("label");
+        label.htmlFor = `genDefaultUser-${index}`;
+        let labelText = "";
+        if (user.nickname && user.nickname.trim() !== "") {
+          labelText = `${user.nickname} (${user.name})`;
+        } else {
+          labelText = user.name;
+        }
+        if (user.emoji && user.emoji.trim() !== "") {
+          labelText += ` ${user.emoji}`;
+        }
+        label.textContent = labelText;
+    
+        row.appendChild(checkbox);
+        row.appendChild(label);
+        container.appendChild(row);
+      });
+    }
+    
+    // Save changes to default users (from the Users tab) back to Firestore.
+    async function saveDefaultUsers() {
+      const container = document.getElementById("usersContainer");
+      const rows = container.children;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const nicknameInput = row.querySelector("input.nickname");
+        const emojiInput = row.querySelector("input.emoji");
+        if (nicknameInput && emojiInput) {
+          const newNickname = nicknameInput.value.trim();
+          const newEmoji = emojiInput.value.trim();
+          if (defaultUsers[i] && (defaultUsers[i].nickname !== newNickname || defaultUsers[i].emoji !== newEmoji)) {
+            try {
+              await updateDoc(doc(db, "defaultUsers", defaultUsers[i].id), {
+                nickname: newNickname,
+                emoji: newEmoji
+              });
+              defaultUsers[i].nickname = newNickname;
+              defaultUsers[i].emoji = newEmoji;
+            } catch (error) {
+              console.error("Error updating default user:", error);
+            }
+          }
+        }
+      }
+      alert("Default user changes saved.");
+      renderDefaultUsers();
+      renderDefaultUsersSelection();
+    }
+    
+    // Utility functions for team generation.
+    function shuffle(array) {
+      let currentIndex = array.length, randomIndex;
+      while (currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+      }
+      return array;
+    }
+    
+    function splitIntoTeams(array) {
+      const teams = [[], []];
+      array.forEach((person, index) => {
+        teams[index % 2].push(person);
+      });
+      return teams;
+    }
+    
+    function displayTeamsWithCustomNames(teams) {
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+      teams.forEach((team, index) => {
+        const teamDiv = document.createElement("div");
+        teamDiv.classList.add("team");
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.classList.add("team-name");
+        nameInput.id = `team-name-${index}`;
+        nameInput.value = `Team ${index + 1}`;
+        nameInput.placeholder = "Custom team name (optional)";
+        teamDiv.appendChild(nameInput);
+        const ul = document.createElement("ul");
+        team.forEach(person => {
+          const li = document.createElement("li");
+          li.textContent = person.name;
+          ul.appendChild(li);
+        });
+        teamDiv.appendChild(ul);
+        resultsDiv.appendChild(teamDiv);
+      });
+    }
+    
+    function getCustomTeams(teams) {
+      return teams.map((team, index) => {
+        const nameInput = document.getElementById(`team-name-${index}`);
+        const customName = (nameInput && nameInput.value.trim()) || `Team ${index + 1}`;
+        return { customName, members: team };
+      });
+    }
+    
+    async function saveHistory(customTeams, recordName) {
+      const teamsObject = {};
+      customTeams.forEach((teamObj, index) => {
+        teamsObject[`team${index + 1}`] = {
+          name: teamObj.customName,
+          members: teamObj.members
+        };
+      });
+      try {
+        const docRef = await addDoc(collection(db, "teamHistory"), {
+          timestamp: new Date(),
+          recordName: recordName,
+          teams: teamsObject
+        });
+        console.log("History document written with ID:", docRef.id);
+      } catch (error) {
+        console.error("Error saving history:", error);
+      }
+    }
+    
+    async function loadHistory() {
+      try {
+        const q = query(
+          collection(db, "teamHistory"),
+          orderBy("timestamp", "desc"),
+          limit(5)
+        );
+        const querySnapshot = await getDocs(q);
+        const historyContent = document.getElementById("historyContent");
+        historyContent.innerHTML = "";
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const date = new Date(data.timestamp.seconds * 1000);
+          let teamInfo = "";
+          for (let teamKey in data.teams) {
+            if (data.teams.hasOwnProperty(teamKey)) {
+              const team = data.teams[teamKey];
+              teamInfo += `<br>${teamKey} (${team.name}): ${team.members.map(member => member.name).join(", ")}`;
+            }
+          }
+          const div = document.createElement("div");
+          div.innerHTML = `<strong>${date.toLocaleString()}</strong> - <em>${data.recordName || "Unnamed Record"}</em>: ${teamInfo}`;
+          div.style.borderBottom = "1px solid #ffcc00";
+          div.style.marginBottom = "10px";
+          historyContent.appendChild(div);
+        });
+      } catch (error) {
+        console.error("Error loading history:", error);
+      }
+    }
+    
+    // --- ANIMATION FUNCTIONS ---
+    function truncateName(name, maxLength) {
+      return name.length > maxLength ? name.slice(0, maxLength) + "..." : name;
+    }
+    
+    function animateTeam(teamObj) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById("animationOverlay");
+        overlay.style.display = "block";
+        overlay.innerHTML = "";
+    
+        const label = document.createElement("div");
+        label.textContent = teamObj.customName;
+        label.style.position = "absolute";
+        label.style.top = "20%";
+        label.style.left = "50%";
+        label.style.transform = "translate(-50%, -50%)";
+        label.style.fontSize = "2rem";
+        label.style.color = "#ffcc00";
+        label.style.opacity = "0";
+        label.style.transition = "opacity 0.5s";
+        overlay.appendChild(label);
+    
+        setTimeout(() => { label.style.opacity = "1"; }, 100);
+        setTimeout(() => { label.style.opacity = "0"; }, 1000);
+    
+        setTimeout(() => {
+          overlay.removeChild(label);
+          teamObj.members.forEach(member => {
+            const ball = document.createElement("div");
+            ball.classList.add("falling-ball");
+            // Use only the emoji from the default user; custom users show nothing.
+            ball.textContent = member.emoji ? member.emoji : "";
+            ball.style.left = Math.random() * (window.innerWidth - 30) + "px";
+            ball.style.animationDelay = Math.random() * 0.5 + "s";
+            ball.style.animationDuration = (2 + Math.random() * 1) + "s";
+            overlay.appendChild(ball);
+          });
+          setTimeout(() => {
+            overlay.style.display = "none";
+            overlay.innerHTML = "";
+            resolve();
+          }, 3000);
+        }, 1500);
+      });
+    }
+    
+    async function playTeamsAnimation(customTeams) {
+      await animateTeam(customTeams[0]);
+      await animateTeam(customTeams[1]);
+    }
+    
+    // --- EVENT HANDLERS ---
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      // Gather selected default users from the Generator tab
+      const selectedDefaults = defaultUsers.filter((user, index) => {
+        const checkbox = document.getElementById(`genDefaultUser-${index}`);
+        return checkbox && checkbox.checked;
+      });
+      const selectedPeople = [...selectedDefaults, ...customPeople];
+      if (selectedPeople.length < 2) {
+        alert("You must have at least 2 participants to form teams!");
+        return;
+      }
+    
+      const recordNameInput = document.getElementById("recordName");
+      const recordName = recordNameInput.value.trim() || "Unnamed Record";
+    
+      const shuffledPeople = shuffle([...selectedPeople]);
+      const teams = splitIntoTeams(shuffledPeople);
+      displayTeamsWithCustomNames(teams);
+      const customTeams = getCustomTeams(teams);
+    
+      await playTeamsAnimation(customTeams);
+      await saveHistory(customTeams, recordName);
+      loadHistory();
+    });
+    
+    document.getElementById("addPersonBtn").addEventListener("click", () => {
+      const newNameInput = document.getElementById("newName");
+      const newName = newNameInput.value.trim();
+      if (!newName) { alert("Please enter a name."); return; }
+      customPeople.push({ name: newName });
+      newNameInput.value = "";
+      alert(newName + " has been added!");
+    });
+    
+    document.getElementById("saveDefaultUsersBtn").addEventListener("click", async () => {
+      await saveDefaultUsers();
+      await fetchDefaultUsers();
+    });
+    
+    // Tab switching logic
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        tab.classList.add('active');
+        const activeTabContent = document.getElementById(tab.getAttribute('data-tab'));
+        if (activeTabContent) activeTabContent.classList.add('active');
+      });
+    });
+    
+    // On load: fetch default users and load shared history.
+    fetchDefaultUsers();
+    loadHistory();
+  </script>
+</body>
+</html>
